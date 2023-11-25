@@ -2,7 +2,7 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000
 
 //middleware
@@ -37,6 +37,23 @@ async function run() {
         const result = await usersCollection.insertOne(users)
         res.send(result)
     })
+
+    app.get('/users', async(req, res)=>{
+      const result = await usersCollection.find().toArray()
+      res.send(result)
+    })
+
+    app.patch('/users/hr/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+          $set: {
+              verified: 'yes'
+          }
+      }
+      const result = await usersCollection.updateOne(filter, updatedDoc)
+      res.send(result)
+  })
 
 
   } finally {
