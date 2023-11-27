@@ -32,6 +32,7 @@ async function run() {
 
     const usersCollection = client.db('VelocitiWork').collection('users')
     const paymentCollection = client.db('VelocitiWork').collection('payments')
+    const taskCollection = client.db('VelocitiWork').collection('tasks')
 
 
     //payment APIs
@@ -64,6 +65,15 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/payments', async (req, res) => {
+      const email = req.query.email
+      const query = {email: email}
+      const result = await paymentCollection.find().toArray()
+      res.send(result)
+    })
+
+    
+
     //apis
 
 
@@ -87,6 +97,24 @@ async function run() {
         }
       }
       const result = await usersCollection.updateOne(filter, updatedDoc)
+      res.send(result)
+    })
+
+
+    app.post('/tasks', async (req, res) => {
+      const tasks = req.body;
+      const result = await taskCollection.insertOne(tasks)
+      res.send(result)
+    })
+
+    app.get('/tasks/:email', async (req, res) => {
+      const email = req.params.email
+      const query = {email: email}
+      const result = await taskCollection.find(query).toArray()
+      res.send(result)
+    })
+    app.get('/tasks', async (req, res) => {    
+      const result = await taskCollection.find().toArray()
       res.send(result)
     })
 
