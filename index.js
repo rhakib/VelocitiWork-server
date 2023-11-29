@@ -34,12 +34,13 @@ async function run() {
     const usersCollection = client.db('VelocitiWork').collection('users')
     const paymentCollection = client.db('VelocitiWork').collection('payments')
     const taskCollection = client.db('VelocitiWork').collection('tasks')
+    const firedUsers = client.db('VelocitiWork').collection('firedUsers')
 
 
     app.post('/jwt', async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-          expiresIn: '8h'
+          expiresIn: '2h'
       })
       console.log(token);
       res.send({ token })
@@ -93,7 +94,7 @@ const verifyHR = async (req, res, next) => {
 
     //payment APIs
 
-    app.post('/create-payment-intent', async (req, res) => {
+    app.post('/create-payment-intent', verifyToken, verifyHR, async (req, res) => {
       const { salary } = req.body;
       const amount = parseInt(salary * 100);
 
@@ -109,14 +110,14 @@ const verifyHR = async (req, res, next) => {
     })
 
 
-    app.post('/payments', async (req, res) => {
+    app.post('/payments', verifyToken, verifyHR, async (req, res) => {
       const payments = req.body;
       const result = await paymentCollection.insertOne(payments)
       res.send(result)
 
     })
 
-    app.get('/payments', async (req, res) => {
+    app.get('/payments',verifyToken, async (req, res) => {
       const result = await paymentCollection.find().sort({payMonth: -1}).toArray()
       res.send(result)
     })
@@ -134,12 +135,16 @@ const verifyHR = async (req, res, next) => {
       res.send(result)
     })
 
-    app.get('/users', verifyToken, async (req, res) => {
+    app.get('/users/hr', verifyToken, verifyHR, async (req, res) => {
+      const result = await usersCollection.find().toArray()
+      res.send(result)
+    })
+    app.get('/users/admin', verifyToken, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray()
       res.send(result)
     })
 
-    app.patch('/users/hr/:id', async (req, res) => {
+    app.patch('/users/hr/:id', verifyToken,  verifyHR, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
@@ -165,7 +170,7 @@ const verifyHR = async (req, res, next) => {
       res.send(result)
     })
 
-    app.get('/tasks', async (req, res) => {    
+    app.get('/tasks', verifyToken, verifyHR, async (req, res) => {    
       let queryObj = {}           
     
             const name = req.query.name;
@@ -183,7 +188,7 @@ const verifyHR = async (req, res, next) => {
             res.send(result)
     })
 
-    app.patch('/users/admin/:id', async (req, res) => {
+    app.patch('/users/admin/:id',verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
@@ -194,7 +199,7 @@ const verifyHR = async (req, res, next) => {
       const result = await usersCollection.updateOne(filter, updatedDoc)
       res.send(result)
     })
-    app.put('/users/admin/:id', async (req, res) => {
+    app.put('/users/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
@@ -205,6 +210,20 @@ const verifyHR = async (req, res, next) => {
       const result = await usersCollection.updateOne(filter, updatedDoc)
       res.send(result)
     })
+
+    app.post('/firedUsers', verifyToken, verifyAdmin,  async (req, res) => {
+      const firedUser = req.body;
+      const result = await firedUsers.insertOne(firedUser)
+      res.send(result)
+    })
+
+    app.get('/firedUsers', async (req, res) => {
+      const result = await firedUsers.find().toArray()
+      res.send(result)
+    })
+
+
+
 
     app.get('/users/admin/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
@@ -243,6 +262,12 @@ const verifyHR = async (req, res, next) => {
       console.log(hr);
 
       res.send({ hr })
+  })
+
+  app.post('/route', async(req, res)=>{
+    const data = req.body
+    const isExist = await paymentCollection.findOne(data)
+    res.send({success: !isExist ? true : false})
   })
 
     
